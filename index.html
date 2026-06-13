@@ -20,15 +20,19 @@ pre{background:#111;padding:15px;border-radius:10px;white-space:pre-wrap;overflo
 <div class="card">
 <h1>🤖 KI Code Studio V27 Ultimate</h1>
 <input type="password" id="apiKey" placeholder="OpenRouter API Key">
+<select id="model">
+<option value="qwen/qwen-2.5-7b-instruct">Qwen 2.5 7B</option>
+<option value="google/gemma-2-9b-it">Gemma 2 9B</option>
+<option value="mistralai/mistral-7b-instruct">Mistral 7B</option>
+</select>
 <textarea id="prompt" placeholder="Beschreibe deine Aufgabe..."></textarea>
 <div class="row">
 <button onclick="generateCode()">⚡ Code generieren</button>
-<button onclick="appIdeas()">💡 App-Ideen</button>
+<button onclick="appIdeas()">💡 App-Ideen</button><button onclick="testModel()">🧪 Modelltest</button>
 </div>
 <button onclick="copyCode()">📋 Code kopieren</button>
 <button onclick="saveHtml()">💾 HTML speichern</button>
 <button onclick="saveKey()">💾 API Key speichern</button>
-<button onclick="installApp()">📱 App installieren</button>
 <pre id="out">Bereit...</pre>
 </div>
 
@@ -51,8 +55,8 @@ async function askAI(task){
 
  let models=[
   "qwen/qwen-2.5-7b-instruct",
-  "google/gemma-2-9b-it",
-  "mistralai/mistral-7b-instruct"
+  "deepseek/deepseek-r1-0528",
+  "meta-llama/llama-3.1-8b-instruct"
 ];
 
  
@@ -73,8 +77,8 @@ let lastError="";
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          model:model,
-          max_tokens:8000,
+          model:document.getElementById("model")?.value || model,
+          max_tokens:1500,
           messages:[{role:"user",content:task.substring(0,3000)}]
         })
       });
@@ -108,19 +112,10 @@ let lastError="";
           .replace(/```css/gi,'')
           .replace(/```javascript/gi,'')
           .replace(/```/g,'')
-          .replace(/^User Safety:.*$/gmi,'')
-          .replace(/^Safety:.*$/gmi,'')
-          .replace(/^safe$/gmi,'')
-          .replace(/^unsafe$/gmi,'')
-          .replace(/^assistant:/gmi,'')
-          .replace(/^model:/gmi,'')
-          .replace(/^response:/gmi,'')
           .trim();
 
-        if(result.includes("<!DOCTYPE html") || result.includes("<html")){
-          out.textContent=result;
-          return;
-        }
+        out.textContent = result;
+        return;
       }
 
       lastError = JSON.stringify(data,null,2);
@@ -145,28 +140,22 @@ let lastError="";
 
 function generateCode(){
 
- const task=document.getElementById("prompt").value.trim();
+ const task = document.getElementById("prompt").value.trim();
 
  if(!task){
-   out.textContent="Bitte Aufgabe eingeben";
+   out.textContent = "Bitte Aufgabe eingeben";
    return;
  }
 
- askAI(`Erstelle eine vollständige produktionsreife Webanwendung.
+ askAI(
+   "Erzeuge vollständigen HTML/CSS/JS Code für:\n\n" + task
+ );
+}
 
-WICHTIG:
-- Gib ausschließlich HTML aus
-- Beginne direkt mit <!DOCTYPE html>
-- Keine Erklärungen
-- Kein Markdown
-- Keine Codeblöcke
-- Keine Einleitung
 
-Anforderungen:
-
-${task}
-
-Der gesamte HTML-, CSS- und JavaScript-Code muss in einer einzigen Datei enthalten sein.`);
+function testModel(){
+ const model=document.getElementById("model").value;
+ out.textContent="Aktives Modell: "+model+"\n\nBereit für Test.";
 }
 
 function appIdeas(){
@@ -208,23 +197,6 @@ function saveHtml(){
 function copyCode(){
  navigator.clipboard.writeText(document.getElementById('out').textContent);
  alert('Code kopiert');
-}
-
-
-let deferredPrompt=null;
-
-window.addEventListener('beforeinstallprompt',(e)=>{
- e.preventDefault();
- deferredPrompt=e;
-});
-
-async function installApp(){
- if(!deferredPrompt){
-   alert("Installation aktuell nicht verfügbar");
-   return;
- }
- deferredPrompt.prompt();
- await deferredPrompt.userChoice;
 }
 
 if ('serviceWorker' in navigator) {
