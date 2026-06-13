@@ -140,7 +140,7 @@ let lastError="";
           continue;
         }
 
-        if(result.length < 300){
+        if(result.length < 5000){
           continue;
         }
 
@@ -170,16 +170,49 @@ let lastError="";
 
 function generateCode(){
 
- const task = document.getElementById("prompt").value.trim();
+ const userTask = document.getElementById("prompt").value.trim();
 
- if(!task){
+ if(!userTask){
    out.textContent = "Bitte Aufgabe eingeben";
    return;
  }
 
- askAI(
-   "Erzeuge vollständigen HTML/CSS/JS Code für:\n\n" + task
- );
+ const masterPrompt = `
+Erstelle eine PRODUKTIONSFÄHIGE Anwendung.
+
+WICHTIGE REGELN:
+- Vollständige Anwendung
+- Keine Platzhalter
+- Keine Kommentare
+- Keine Erklärungen
+- Keine Markdown-Blöcke
+- Nur fertiger Code
+- Moderne UI
+- Responsive Mobile Design
+- Dark Mode
+- LocalStorage
+- Dashboard
+- Suchfunktion
+- Filter
+- Statistiken
+- Benutzerverwaltung
+- Registrierung
+- Login
+- Toast Benachrichtigungen
+
+Antwort ausschließlich als vollständige HTML-Datei.
+
+Die Antwort MUSS mit <!DOCTYPE html> beginnen
+und mit </html> enden.
+
+Mindestens 1500 Zeilen Code.
+
+Aufgabe:
+
+${userTask}
+`;
+
+ askAI(masterPrompt);
 }
 
 
