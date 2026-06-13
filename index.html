@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KI Code Studio V27 Ultimate</title>
+<style>
+body{background:#0b0b0b;color:#fff;font-family:Arial;margin:0;padding:20px}
+.card{max-width:900px;margin:auto;border:1px solid #444;border-radius:16px;padding:20px}
+input,textarea,button{width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #555;border-radius:10px;padding:12px;margin-top:10px}
+textarea{min-height:140px}
+.row{display:flex;gap:10px}.row button{flex:1}
+pre{background:#111;padding:15px;border-radius:10px;white-space:pre-wrap;overflow:auto;min-height:120px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🤖 KI Code Studio V27 Ultimate</h1>
+<input type="password" id="apiKey" placeholder="OpenRouter API Key">
+<textarea id="prompt" placeholder="Beschreibe deine Aufgabe..."></textarea>
+<div class="row">
+<button onclick="generateCode()">⚡ Code generieren</button>
+<button onclick="appIdeas()">💡 App-Ideen</button>
+</div>
+<button onclick="copyCode()">📋 Code kopieren</button>
+<button onclick="saveHtml()">💾 HTML speichern</button>
+<button onclick="saveKey()">💾 API Key speichern</button>
+<pre id="out">Bereit...</pre>
+</div>
+
+<script>
+const out=document.getElementById("out");
+
+function saveKey(){
+ localStorage.setItem("openrouterKey",apiKey.value);
+ alert("Gespeichert");
+}
+window.onload=()=>{
+ apiKey.value=localStorage.getItem("openrouterKey")||"";
+};
+
+async function askAI(task){
+ const key=apiKey.value.trim();
+ if(!key){out.textContent="API-Key fehlt";return;}
+
+ out.textContent="Verbinde mit OpenRouter...";
+
+ let models=[
+  "qwen/qwen-2.5-7b-instruct",
+  "deepseek/deepseek-r1-0528",
+  "meta-llama/llama-3.1-8b-instruct"
+];
+
+ 
+let lastError="";
+
+ for(const model of models){
+   try{
+      out.textContent="Teste Modell: "+model+" ...";
+
+      const controller=new AbortController();
+      setTimeout(()=>controller.abort(),20000);
+
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+        method:"POST",
+        signal:controller.signal,
+        headers:{
+          "Authorization":"Bearer "+key,
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          model:model,
+          max_tokens:1500,
+          messages:[{role:"user",content:task.substring(0,3000)}]
+        })
+      });
+
+      const data=await r.json();
+
+      const choice = data?.choices?.[0];
+
+      let result =
+        choice?.message?.content ??
+        choice?.text ??
+        "";
+
+      if(
+        r.ok &&
+        typeof result === "string" &&
+        result.trim().length > 50
+      ){
+
+        const doctypePos = result.indexOf("<!DOCTYPE");
+        const htmlPos = result.indexOf("<html");
+
+        if(doctypePos >= 0){
+          result = result.substring(doctypePos);
+        }else if(htmlPos >= 0){
+          result = result.substring(htmlPos);
+        }
+
+        result = result
+          .replace(/```html/gi,'')
+          .replace(/```css/gi,'')
+          .replace(/```javascript/gi,'')
+          .replace(/```/g,'')
+          .trim();
+
+        out.textContent = result;
+        return;
+      }
+
+      lastError = JSON.stringify(data,null,2);
+
+      if(!result && r.ok){
+         result = "DEBUG:\n" + JSON.stringify(data,null,2);
+      }
+
+      if(r.ok && result){
+         out.textContent=result;
+         return;
+      } else {
+         lastError=JSON.stringify(data,null,2);
+      }
+   }catch(e){
+      lastError=e.message;
+   }
+ }
+
+ out.textContent="Kein brauchbares Modell gefunden. Letzte Antwort:\n\n"+lastError;
+}
+
+function generateCode(){
+
+ const task = document.getElementById("prompt").value.trim();
+
+ if(!task){
+   out.textContent = "Bitte Aufgabe eingeben";
+   return;
+ }
+
+ askAI(
+   "Erzeuge vollständigen HTML/CSS/JS Code für:\n\n" + task
+ );
+}
+
+function appIdeas(){
+
+ const task = document.getElementById("prompt").value.trim();
+
+ askAI(
+   "Nenne 20 App-Ideen für:\n\n" + task
+ );
+}
+
+function saveHtml(){
+
+    const content = document.getElementById('out').textContent;
+
+    if(!content || content==='Bereit...'){
+        alert('Kein Code vorhanden');
+        return;
+    }
+
+    const blob = new Blob([content], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'app.html';
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(()=>{
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    },1000);
+
+    alert('Download gestartet');
+}
+
+function copyCode(){
+ navigator.clipboard.writeText(document.getElementById('out').textContent);
+ alert('Code kopiert');
+}
+</script>
+</body>
+</html>
