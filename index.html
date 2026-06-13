@@ -28,6 +28,7 @@ pre{background:#111;padding:15px;border-radius:10px;white-space:pre-wrap;overflo
 <button onclick="copyCode()">📋 Code kopieren</button>
 <button onclick="saveHtml()">💾 HTML speichern</button>
 <button onclick="saveKey()">💾 API Key speichern</button>
+<button onclick="installApp()">📱 App installieren</button>
 <pre id="out">Bereit...</pre>
 </div>
 
@@ -50,8 +51,8 @@ async function askAI(task){
 
  let models=[
   "qwen/qwen-2.5-7b-instruct",
-  "deepseek/deepseek-r1-0528",
-  "meta-llama/llama-3.1-8b-instruct"
+  "google/gemma-2-9b-it",
+  "mistralai/mistral-7b-instruct"
 ];
 
  
@@ -73,7 +74,7 @@ let lastError="";
         },
         body:JSON.stringify({
           model:model,
-          max_tokens:1500,
+          max_tokens:8000,
           messages:[{role:"user",content:task.substring(0,3000)}]
         })
       });
@@ -107,10 +108,19 @@ let lastError="";
           .replace(/```css/gi,'')
           .replace(/```javascript/gi,'')
           .replace(/```/g,'')
+          .replace(/^User Safety:.*$/gmi,'')
+          .replace(/^Safety:.*$/gmi,'')
+          .replace(/^safe$/gmi,'')
+          .replace(/^unsafe$/gmi,'')
+          .replace(/^assistant:/gmi,'')
+          .replace(/^model:/gmi,'')
+          .replace(/^response:/gmi,'')
           .trim();
 
-        out.textContent = result;
-        return;
+        if(result.includes("<!DOCTYPE html") || result.includes("<html")){
+          out.textContent=result;
+          return;
+        }
       }
 
       lastError = JSON.stringify(data,null,2);
@@ -135,16 +145,28 @@ let lastError="";
 
 function generateCode(){
 
- const task = document.getElementById("prompt").value.trim();
+ const task=document.getElementById("prompt").value.trim();
 
  if(!task){
-   out.textContent = "Bitte Aufgabe eingeben";
+   out.textContent="Bitte Aufgabe eingeben";
    return;
  }
 
- askAI(
-   "Erzeuge vollständigen HTML/CSS/JS Code für:\n\n" + task
- );
+ askAI(`Erstelle eine vollständige produktionsreife Webanwendung.
+
+WICHTIG:
+- Gib ausschließlich HTML aus
+- Beginne direkt mit <!DOCTYPE html>
+- Keine Erklärungen
+- Kein Markdown
+- Keine Codeblöcke
+- Keine Einleitung
+
+Anforderungen:
+
+${task}
+
+Der gesamte HTML-, CSS- und JavaScript-Code muss in einer einzigen Datei enthalten sein.`);
 }
 
 function appIdeas(){
@@ -186,6 +208,23 @@ function saveHtml(){
 function copyCode(){
  navigator.clipboard.writeText(document.getElementById('out').textContent);
  alert('Code kopiert');
+}
+
+
+let deferredPrompt=null;
+
+window.addEventListener('beforeinstallprompt',(e)=>{
+ e.preventDefault();
+ deferredPrompt=e;
+});
+
+async function installApp(){
+ if(!deferredPrompt){
+   alert("Installation aktuell nicht verfügbar");
+   return;
+ }
+ deferredPrompt.prompt();
+ await deferredPrompt.userChoice;
 }
 
 if ('serviceWorker' in navigator) {
