@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KI Code Studio V27 Ultimate</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="icon" href="logo-192.png">
 <style>
 body{background:#0b0b0b;color:#fff;font-family:Arial;margin:0;padding:20px}
 .card{max-width:900px;margin:auto;border:1px solid #444;border-radius:16px;padding:20px}
@@ -183,6 +186,12 @@ function saveHtml(){
 function copyCode(){
  navigator.clipboard.writeText(document.getElementById('out').textContent);
  alert('Code kopiert');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  });
 }
 </script>
 </body>
