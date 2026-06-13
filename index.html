@@ -54,9 +54,11 @@ async function askAI(task){
  out.textContent="Verbinde mit OpenRouter...";
 
  let models=[
-  "qwen/qwen-2.5-7b-instruct",
-  "deepseek/deepseek-r1-0528",
-  "meta-llama/llama-3.1-8b-instruct"
+  "deepseek/deepseek-chat",
+  "deepseek/deepseek-r1",
+  "qwen/qwen-2.5-coder-32b-instruct",
+  "google/gemma-3-27b-it",
+  "mistralai/mistral-small-3.1-24b-instruct"
 ];
 
  
@@ -78,7 +80,7 @@ let lastError="";
         },
         body:JSON.stringify({
           model:document.getElementById("model")?.value || model,
-          max_tokens:1500,
+          max_tokens:12000,
           messages:[{role:"user",content:task.substring(0,3000)}]
         })
       });
@@ -113,6 +115,33 @@ let lastError="";
           .replace(/```javascript/gi,'')
           .replace(/```/g,'')
           .trim();
+
+        function isTemplateResponse(text){
+          const badPatterns=[
+            "Add your CSS here",
+            "Add your JavaScript here",
+            "Add your HTML here",
+            "<!-- Add your HTML here -->",
+            "/* Add your CSS here */",
+            "// Add your JavaScript here"
+          ];
+          return badPatterns.some(p=>text.includes(p));
+        }
+
+        if(isTemplateResponse(result)){
+          out.textContent="❌ FEHLER:\n\nDas Modell hat nur ein Template geliefert. Bitte anderes Modell auswählen.";
+          return;
+        }
+
+        if(result.length < 3000){
+          out.textContent="❌ FEHLER:\n\nAntwort zu kurz. Wahrscheinlich unvollständiger Code.";
+          return;
+        }
+
+        if(!result.startsWith("<!DOCTYPE html") && !result.startsWith("<html")){
+          out.textContent="❌ FEHLER:\n\nKeine gültige HTML-Datei erkannt.";
+          return;
+        }
 
         out.textContent = result;
         return;
